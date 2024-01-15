@@ -1,0 +1,267 @@
+---
+title: "Evidencia 02"
+author: 'Luis Gabriel Martínez Rentería'
+date: "4/30/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Datos del alumno: 
+Luis Gabriel Martinez Rentería
+\n A01651812
+\n Biología computacional
+
+\n Liga al video.
+https://youtu.be/t488DvxqRaM
+
+Dentro del resultado de este entregable deberás demostrar avances en tu desarrollo de las siguientes subcompetencias y niveles de dominio:
+
+* SICT0201A - Determinación de patrones
+* SICT0402A - Aplicación de estándares y normas
+* SEG0502A - Pensamiento científico
+* SEG0603A - Comprensión de otros códigos
+
+Consulta la descripción completa de los niveles de dominio en el documento: Niveles de dominio.pdf
+
+Instrucciones:
+
+1. Lee nuevamente y con detalle la situación problema.
+2. Investiga información sobre el virus de la influenza en un contexto mundial.
+3. Documéntate en fuentes confiables y científicas.
+4. Realiza lo que se te pide a continuación.
+ 
+
+# PARTE 1 - Video
+
+En un video, responde justificadamente las siguientes preguntas:
+
+1. ¿Cuáles son las variantes del virus de la influenza en el mundo? Incluye una variante por continente y mencionando las referencias de los artículos consultados en PUBMED.
+
+2. ¿Cuáles son los subtipos del virus de la influenza que existen en México?
+
+3. En relación con la situación actual reflexiona, ¿qué harías durante la contingencia del SARS-COVID2 en comunidades de bajos recursos?
+
+**Justifica tu respuesta.**
+
+### Importante:
+
+* Tu video debe tener una duración máxima de 3 minutos. Debes salir en el video.
+* Se debe dar respuesta a las 3 preguntas antes mencionadas.
+* Puedes compartir algún documento o presentación de apoyo.
+* Sube tu video a Youtube y comparte la liga. Revisa las políticas de privacidad y asegúrate que tu profesor pueda visualizarlo sin problemas. Puedes configurarlo como "No listado" para que no aparezca como visible al público.
+
+# PARTE 2 - Código
+
+Realiza lo siguiente en un script de R y código:
+
+##### Obtén las secuencias de las variantes mexicanas del virus desde el NCBI (Enlaces a un sitio externo.) y secuencias de las variantes de los continentes del mundo. El total de variantes que debes tener son: todas las variantes mexicanas y una variante por continente (de América incluir la de otro país).
+
+```{r}
+#Debido a que al generar el pdf se me generaban problemas si dejaba los install, he tenido que comentarlos, pero son necesarios para el buen funcionamiento del codigo
+
+
+#install.packages("ape")
+#install.packages("phangorn")
+#install.packages("phytools")
+#install.packages("geiger")
+#install.packages("BiocManager")
+#BiocManager::install("Biostrings")
+#install.packages("ggmsa")
+
+#install.packages("tidyverse")
+#install.packages("stringr")  
+#install.packages("remotes")
+#BiocManager::install("treeio")
+#BiocManager::install("ggtree")
+#BiocManager::install("DECIPHER")
+#BiocManager::install("S4Vectors")
+#BiocManager::install("seqmagick")
+```
+
+
+```{r}
+library(ape)
+library(phytools)
+library(Biostrings)
+library(seqinr)
+library(adegenet)
+library(ggtree)
+library(DECIPHER)
+library(viridis)
+library(ggplot2)
+```
+
+```{r}
+#LAs variantes de influenza utilizando el segmento 4 del virus (HA)
+virus <- c(  "KP456547.1", "CY072074.1", "AJ489860.1","EU501856.1","FR832667.1","CY106568.1","KT889237.1","CY125728.1")
+
+virus_sequences <- read.GenBank(virus)
+```
+```{r}
+attr(virus_sequences, "species")
+```
+```{r}
+attr(virus_sequences, "description")
+```
+
+##### Calcula el número de bases de cada variante por continente.
+```{r}
+contar <- function(secuencia, lugar){
+  complement <- ""
+  i <- 1
+  for(nucleotido in secuencia[[lugar]]){
+  if(nucleotido == '88'){
+    complement[i] <- "a"
+  }else if(nucleotido == '18'){
+    complement[i] <- "t"
+  }else if(nucleotido == '28'){
+    complement[i] <- "c"
+  }else if(nucleotido == '48'){
+    complement[i] <- "g"
+  }
+    i <- i + 1
+  }
+count(complement,1)
+}
+
+print(contar(virus_sequences,1))
+print(contar(virus_sequences,2))
+print(contar(virus_sequences,3))
+print(contar(virus_sequences,4))
+print(contar(virus_sequences,5))
+
+```
+
+
+
+##### Crea una gráfica donde compares todas las variantes del virus y las bases de ADN que los componen (por continente). 
+NOTA: esto se puede compartir con los alumnos
+1. Crear ids de cada virus.
+```{r}
+virus_GenBank_IDs <- paste(attr(virus_sequences, "species"), names
+(virus_sequences), sep ="_HA_") 
+virus_GenBank_IDs
+```
+2. Escribir el archivo del GenBank a FASTA con todas las secuencias:
+```{r}
+write.dna(virus_sequences,  file ="virus_seqs.fasta", format = "fasta", append = FALSE)
+```
+
+3.Leer el archivo Fasta para procesarlo:
+```{r}
+virus_seq_no_alineadas <- read.fasta("virus_seqs.fasta", seqtype = "DNA", as.string = TRUE, forceDNAtolower = FALSE)
+
+virus_seq_no_alineadas
+```
+4. Sobre escribir el archivo pero ahora con más datos:
+
+```{r}
+write.fasta(sequences = virus_seq_no_alineadas, names = virus_GenBank_IDs,
+nbchar = 10, file.out = "virus_seqs.fasta")
+
+```
+
+5. Volver a cargar los datos en formato FASTA:
+```{r}
+virus_seq_no_alineadas <- read.fasta("virus_seqs.fasta", seqtype = "DNA", as.string = FALSE, forceDNAtolower = FALSE)
+
+virus_seq_no_alineadas
+```
+6. Crear función para la gráfica:
+```{r}
+crear_graficas = function(secuencia){
+par(mfrow=c(1,1))
+  barplot(table(secuencia[[1]]), col = 1:4)
+  title("Oceanía")
+  barplot(table(secuencia[[2]]), col = 1:4)
+  title("América")
+  barplot(table(secuencia[[3]]), col = 1:4)
+  title("Europa")
+  barplot(table(secuencia[[4]]), col = 1:4)
+  title("Asia")
+  barplot(table(secuencia[[5]]), col = 1:4)
+  title("África")
+  barplot(table(secuencia[[6]]), col = 1:4)
+  title("México (Mérida)")
+  barplot(table(secuencia[[7]]), col = 1:4)
+  title("México (Ciudad de México)")
+  barplot(table(secuencia[[8]]), col = 1:4)
+  title("México (México)")
+}
+
+
+crear_graficas(virus_seq_no_alineadas)
+```
+Aquí podemos ver la representación gráfica de las proporciones de los nucleótidos en cada variación del virus de influenza. Se analizaron 8 variaciones del virus, una por cada continente y tres en México. Los nucleótidos que se ven son adenina (a), citosina (c), guanina (g) y timina (t).  
+
+Podemos ver que en todas las variaciones de las gráficas, la proporción de adenina con respecto a la longitud de la cadena es la misma, mientras que la que más varia es la de citosina. Se puede ver tambien que hay una rama de más en las graficas de barras, esta no se muy bien a que se refiere, pero puede ser información que esta presente en la cadena y que no respresenta nada de valor en esta.
+Por último podemos agregar que las variaciones no son iguales ninguna de la otra.
+
+##### Agrega un análisis jerárquico global obtenido de las secuencias que seleccionaron para estudiar (árbol filogenético).
+1. Cargar el archivo en formato DNAStringSet
+```{r}
+virus_seq_no_alineadas <- readDNAStringSet("virus_seqs.fasta")
+virus_seq_no_alineadas
+```
+2. Orientación de secuencias:
+```{r}
+virus_seq_no_alineadas <- OrientNucleotides(virus_seq_no_alineadas)
+
+```
+3. Realizar el alineamiento de las secuencias: 
+```{r}
+virus_secuencias_alineadas <- AlignSeqs(virus_seq_no_alineadas)
+
+```
+4. Guardar el archivo y leer las secuencias alineadas.
+```{r}
+writeXStringSet(virus_secuencias_alineadas, file = "virus_align_seq.fasta")
+
+virus_alineado <- read.alignment("virus_align_seq.fasta", format = "fasta")
+```
+5. Crear la matriz de distancia entre las secuencias.
+```{r}
+distancias_matrices <- dist.alignment(virus_alineado, matrix = "similarity")
+distancias_matrices
+
+```
+
+6. Crear el árbol filogenético
+```{r}
+virus_str_filogenetico <- nj(distancias_matrices)
+virus_str_filogenetico
+class(virus_str_filogenetico)
+
+```
+7. Crear la visualización del árbol
+```{r}
+arbol <- ladderize((virus_str_filogenetico))
+plot(arbol)
+title("Variantes del virus de Influenza en diferentes regiones del mundo")
+```
+
+##### Agrega una interpretación escrita de las gráficas que integras (una por continente y la del análisis jerárquico).
+En el árbol podemos ver que todas las variaciones nacen de un mismo nodo, por lo que todas tienen un mismo padre. podmeos ver tambien que ninguna de las variaciones de México vienen de un mismo padre cercano, aunque todos se encuentran en la parte de abajo. Tambien se puede ver que la variación Japonesa y una de las Mexicanas son las que más ramas se llevan, por lo que son las más alejadas en similitud con las variaciones Europea y la de Oceania.
+
+Podemos concluir con esto que las variaciones son similares entre si, pero hay más similitudes entre pares de variaciones que entre combinaciones de H y N similiares, ya que casi todas las variaciones que comparten el mismo número en H y el mismo en N se encuentran en diferentes partes del árbol (No se ven juntas).
+
+Citas de paquetes utilizados
+```{r}
+citation("ape")
+citation("phangorn")
+citation("phytools")
+citation("geiger")
+citation("BiocManager")
+citation("stringr")
+citation("ggmsa")
+
+```
+
+
+### Especificaciones de entrega
+* Formato de entrega: PDF y RNotebook o Script
+
+* Nombre del entregable: ev02.pdf y ev02.Rmd
+
+* Medio de entrega: Se entrega en Canvas en el botón "Entregar Tarea" en la parte superior de esta pantalla.
